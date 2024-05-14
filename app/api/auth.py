@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from app.db.models import User
 from sqlalchemy.orm import Session
@@ -7,6 +8,7 @@ from app.api.utils.jwt import create_access_token
 from app.db.base import get_session
 from app.api.utils.response import success_response, error_response
 from datetime import datetime, timedelta
+from typing import Annotated, Union
 
 router = APIRouter()
 
@@ -39,3 +41,13 @@ async def login(username: str, password: str, db: Session = Depends(get_session)
     access_token_expires = timedelta(minutes=400)
     access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
     return success_response("Login Successful", {"access_token": access_token})
+
+
+@router.post("/token")
+async def authenticate_for_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_session)):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not user.check_password(form_data.password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    access_token_expires = timedelta(minutes=400)
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}

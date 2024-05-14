@@ -15,6 +15,6 @@ class User(Base):
     def set_password(self, new_password: str):
         self.password = get_password_hash(new_password)
 
-    def check_password(self, passord: str):
-        return verify_password(passord, self.password)
+    def check_password(self, password: str):
+        return verify_password(password, self.password)
 
